@@ -104,5 +104,32 @@ def move(self):
 def draw(self, win):
     pygame.draw.circle(win, self.color, (int(self.x), int(self.y)), self.size)
 
+class Projectile:
+    def __init__(self, x, y, target, damage):
+        self.x = x
+        self.y = y
+        self.target = target
+        self.damage = damage
+        self.speed = 8
+
+    def update(self):
+        if self.target not in self.target.game.enemies:
+            return True
+
+        dx = self.target.x - self.x
+        dy = self.target.y - self.y
+        dist = math.hypot(dx, dy)
+
+        if dist < 5:
+            self.target.health -= self.damage
+            return True
+
+        self.x += (dx / dist) * self.speed
+        self.y += (dy / dist) * self.speed
+        return False
+
+    def draw(self, win):
+        pygame.draw.circle(win, YELLOW, (int(self.x), int(self.y)), 3)
+
 if __name__ == "__main__":
     main()
