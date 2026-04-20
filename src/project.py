@@ -37,18 +37,6 @@ PATH = [
 def distance(a, b):
     return math.hypot(a[0] - b[0], a[1] - b[1])
 
-def main():
-    game = Game()
-    game.run()
-
-class Game:
-    def run(self):
-        pass
-
-class Tower:
-    def update(self):
-        pass
-
 class Enemy:
     def __init__(self, enemy_type, wave):
         self.type = enemy_type
@@ -96,6 +84,25 @@ class Enemy:
 
         self.slow_factor = 1
 
+def move(self):
+    if self.index >= len(self.path) - 1:
+        return True
+
+    target = self.path[self.index + 1]
+    dx = target[0] - self.x
+    dy = target[1] - self.y
+    dist = math.hypot(dx, dy)
+
+    if dist < 5:
+        self.index += 1
+    else:
+        self.x += (dx / dist) * self.speed * self.slow_factor
+        self.y += (dy / dist) * self.speed * self.slow_factor
+
+    return False
+
+def draw(self, win):
+    pygame.draw.circle(win, self.color, (int(self.x), int(self.y)), self.size)
 
 if __name__ == "__main__":
     main()
