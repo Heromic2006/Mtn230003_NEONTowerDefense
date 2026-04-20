@@ -1,3 +1,10 @@
+import pygame
+import math
+import random
+
+# Initialize pygame
+pygame.init()
+
 def main():
     game = Game()
     game.run()
