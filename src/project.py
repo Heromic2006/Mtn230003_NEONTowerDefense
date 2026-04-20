@@ -50,8 +50,52 @@ class Tower:
         pass
 
 class Enemy:
-    def move(self):
-        pass
+    def __init__(self, enemy_type, wave):
+        self.type = enemy_type
+        self.path = PATH
+        self.index = 0
+        self.x, self.y = self.path[0]
+
+        scale = 1 + wave * 0.2
+
+        if enemy_type == "goblin":
+            self.speed = 3
+            self.health = 40 * scale
+            self.max_health = self.health
+            self.damage = 1
+            self.gold = 5
+            self.size = 8
+            self.color = NEON_GREEN
+
+        elif enemy_type == "medium":
+            self.speed = 4
+            self.health = 80 * scale
+            self.max_health = self.health
+            self.damage = 2
+            self.gold = 10
+            self.size = 12
+            self.color = NEON_BLUE
+
+        elif enemy_type == "big":
+            self.speed = 1.5
+            self.health = 200 * scale
+            self.max_health = self.health
+            self.damage = 5
+            self.gold = 20
+            self.size = 18
+            self.color = NEON_RED
+
+        elif enemy_type == "final":
+            self.speed = 0.7
+            self.health = 1000 * scale
+            self.max_health = self.health
+            self.damage = 10
+            self.gold = 100
+            self.size = 30
+            self.color = NEON_PURPLE
+
+        self.slow_factor = 1
+
 
 if __name__ == "__main__":
     main()
