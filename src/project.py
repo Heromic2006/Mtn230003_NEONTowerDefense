@@ -5,7 +5,7 @@ import random
 # Initialize pygame
 pygame.init()
 
-# Get screen resolution
+# Screen
 info = pygame.display.Info()
 WIDTH, HEIGHT = info.current_w, info.current_h
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -22,7 +22,9 @@ NEON_PURPLE = (200, 0, 255)
 YELLOW = (255, 255, 0)
 WHITE = (255, 255, 255)
 
-# Path (waypoints)
+FONT = pygame.font.SysFont("arial", 24)
+
+# Path
 PATH = [
     (0, HEIGHT // 2),
     (WIDTH // 4, HEIGHT // 2),
@@ -37,9 +39,9 @@ PATH = [
 def distance(a, b):
     return math.hypot(a[0] - b[0], a[1] - b[1])
 
+#ENEMY
 class Enemy:
     def __init__(self, enemy_type, wave):
-        self.type = enemy_type
         self.path = PATH
         self.index = 0
         self.x, self.y = self.path[0]
@@ -49,7 +51,6 @@ class Enemy:
         if enemy_type == "goblin":
             self.speed = 3
             self.health = 40 * scale
-            self.max_health = self.health
             self.damage = 1
             self.gold = 5
             self.size = 8
@@ -58,7 +59,6 @@ class Enemy:
         elif enemy_type == "medium":
             self.speed = 4
             self.health = 80 * scale
-            self.max_health = self.health
             self.damage = 2
             self.gold = 10
             self.size = 12
@@ -67,7 +67,6 @@ class Enemy:
         elif enemy_type == "big":
             self.speed = 1.5
             self.health = 200 * scale
-            self.max_health = self.health
             self.damage = 5
             self.gold = 20
             self.size = 18
@@ -76,34 +75,35 @@ class Enemy:
         elif enemy_type == "final":
             self.speed = 0.7
             self.health = 1000 * scale
-            self.max_health = self.health
             self.damage = 10
             self.gold = 100
             self.size = 30
             self.color = NEON_PURPLE
 
+        self.max_health = self.health
         self.slow_factor = 1
 
-def move(self):
-    if self.index >= len(self.path) - 1:
-        return True
+    def move(self):
+        if self.index >= len(self.path) - 1:
+            return True
 
-    target = self.path[self.index + 1]
-    dx = target[0] - self.x
-    dy = target[1] - self.y
-    dist = math.hypot(dx, dy)
+        target = self.path[self.index + 1]
+        dx = target[0] - self.x
+        dy = target[1] - self.y
+        dist = math.hypot(dx, dy)
 
-    if dist < 5:
-        self.index += 1
-    else:
-        self.x += (dx / dist) * self.speed * self.slow_factor
-        self.y += (dy / dist) * self.speed * self.slow_factor
+        if dist < 5:
+            self.index += 1
+        else:
+            self.x += (dx / dist) * self.speed * self.slow_factor
+            self.y += (dy / dist) * self.speed * self.slow_factor
 
-    return False
+        return False
 
-def draw(self, win):
-    pygame.draw.circle(win, self.color, (int(self.x), int(self.y)), self.size)
+    def draw(self, win):
+        pygame.draw.circle(win, self.color, (int(self.x), int(self.y)), self.size)
 
+#PROJECTILE
 class Projectile:
     def __init__(self, x, y, target, damage):
         self.x = x
@@ -112,8 +112,8 @@ class Projectile:
         self.damage = damage
         self.speed = 8
 
-    def update(self):
-        if self.target not in self.target.game.enemies:
+    def update(self, game):
+        if self.target not in game.enemies:
             return True
 
         dx = self.target.x - self.x
@@ -131,6 +131,7 @@ class Projectile:
     def draw(self, win):
         pygame.draw.circle(win, YELLOW, (int(self.x), int(self.y)), 3)
 
+#TOWER
 class Tower:
     def __init__(self, x, y, tower_type):
         self.x = x
@@ -174,5 +175,90 @@ class Tower:
         color = NEON_BLUE if self.type == "base" else NEON_RED if self.type == "sniper" else NEON_PURPLE
         pygame.draw.circle(win, color, (int(self.x), int(self.y)), 10)
 
-if __name__ == "__main__":
-    main()
+#GAME
+class Game:
+    def __init__(self):
+        self.enemies = []
+        self.towers = []
+        self.projectiles = []
+
+        self.wave = 1
+        self.spawn_timer = 0
+        self.spawn_count = 0
+
+        self.lives = 20
+        self.gold = 150
+
+        self.build_phase = True  # <-- key addition
+
+    def start_wave(self):
+        self.build_phase = False
+        self.spawn_timer = 0
+        self.spawn_count = 0
+
+    def spawn_enemy(self):
+        types = ["goblin", "medium", "big"]
+        if self.wave % 5 == 0:
+            types.append("final")
+        self.enemies.append(Enemy(random.choice(types), self.wave))
+
+    def update(self):
+        if self.build_phase:
+            return
+
+        self.spawn_timer += 1
+        if self.spawn_timer > 30 and self.spawn_count < 10 + self.wave:
+            self.spawn_enemy()
+            self.spawn_timer = 0
+            self.spawn_count += 1
+
+        # Reset slows
+        for e in self.enemies:
+            e.slow_factor = 1
+
+        # Enemies
+        for e in self.enemies[:]:
+            if e.move():
+                self.lives -= e.damage
+                self.enemies.remove(e)
+            elif e.health <= 0:
+                self.gold += e.gold
+                self.enemies.remove(e)
+
+        # Towers
+        for t in self.towers:
+            t.update(self)
+
+        # Projectiles
+        for p in self.projectiles[:]:
+            if p.update(self):
+                self.projectiles.remove(p)
+
+        # End of wave
+        if self.spawn_count >= 10 + self.wave and not self.enemies:
+            self.wave += 1
+            self.build_phase = True
+
+    def draw(self, win):
+        win.fill(BLACK)
+
+        pygame.draw.lines(win, WHITE, False, PATH, 3)
+
+        for e in self.enemies:
+            e.draw(win)
+
+        for t in self.towers:
+            t.draw(win)
+
+        for p in self.projectiles:
+            p.draw(win)
+
+        # UI
+        text = f"Wave: {self.wave}  Gold: {self.gold}  Lives: {self.lives}"
+        win.blit(FONT.render(text, True, WHITE), (20, 20))
+
+        if self.build_phase:
+            msg = "BUILD PHASE - Press SPACE to start"
+            win.blit(FONT.render(msg, True, NEON_GREEN), (WIDTH//2 - 200, 50))
+
+        pygame.display.update()
