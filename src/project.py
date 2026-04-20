@@ -262,3 +262,39 @@ class Game:
             win.blit(FONT.render(msg, True, NEON_GREEN), (WIDTH//2 - 200, 50))
 
         pygame.display.update()
+#MAIN
+def main():
+    clock = pygame.time.Clock()
+    game = Game()
+
+    running = True
+    while running:
+        clock.tick(FPS)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and game.build_phase:
+                    game.start_wave()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+
+                if game.build_phase:
+                    if event.button == 1 and game.gold >= 50:
+                        game.towers.append(Tower(x, y, "base"))
+                        game.gold -= 50
+
+                    elif event.button == 3 and game.gold >= 75:
+                        game.towers.append(Tower(x, y, "sniper"))
+                        game.gold -= 75
+
+        game.update()
+        game.draw(WIN)
+
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
