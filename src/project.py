@@ -39,7 +39,29 @@ PATH = [
 def distance(a, b):
     return math.hypot(a[0] - b[0], a[1] - b[1])
 
-#ENEMY
+# compatibility alias (IMPORTANT for on_path snippet)
+dist = distance
+
+
+# --- ADDED TO TOP LEVEL ---
+def on_path(x, y):
+    SAFE = 40
+    for i in range(len(PATH) - 1):
+        x1, y1 = PATH[i]
+        x2, y2 = PATH[i + 1]
+        dx, dy = x2 - x1, y2 - y1
+        if dx == dy == 0:
+            continue
+
+        t = max(0, min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy)))
+        cx, cy = x1 + t * dx, y1 + t * dy
+
+        if dist((x, y), (cx, cy)) < SAFE:
+            return True
+    return False
+
+
+# ENEMY
 class Enemy:
     def __init__(self, enemy_type, wave):
         self.path = PATH
@@ -90,20 +112,32 @@ class Enemy:
         target = self.path[self.index + 1]
         dx = target[0] - self.x
         dy = target[1] - self.y
-        dist = math.hypot(dx, dy)
+        dist_val = math.hypot(dx, dy)
 
-        if dist < 5:
+        if dist_val < 5:
             self.index += 1
         else:
-            self.x += (dx / dist) * self.speed * self.slow_factor
-            self.y += (dy / dist) * self.speed * self.slow_factor
+            self.x += (dx / dist_val) * self.speed * self.slow_factor
+            self.y += (dy / dist_val) * self.speed * self.slow_factor
 
         return False
 
+    # --- UPDATED ENEMY DRAW (WITH HEALTH BAR) ---
     def draw(self, win):
         pygame.draw.circle(win, self.color, (int(self.x), int(self.y)), self.size)
 
-#PROJECTILE
+        # Health bar
+        w = 40
+        h = 5
+        health_ratio = max(self.health / self.max_health, 0)
+
+        pygame.draw.rect(win, (80, 0, 0),
+                         (self.x - 20, self.y - 25, w, h))
+        pygame.draw.rect(win, (0, 255, 100),
+                         (self.x - 20, self.y - 25, w * health_ratio, h))
+
+
+# PROJECTILE
 class Projectile:
     def __init__(self, x, y, target, damage):
         self.x = x
@@ -118,20 +152,21 @@ class Projectile:
 
         dx = self.target.x - self.x
         dy = self.target.y - self.y
-        dist = math.hypot(dx, dy)
+        dist_val = math.hypot(dx, dy)
 
-        if dist < 5:
+        if dist_val < 5:
             self.target.health -= self.damage
             return True
 
-        self.x += (dx / dist) * self.speed
-        self.y += (dy / dist) * self.speed
+        self.x += (dx / dist_val) * self.speed
+        self.y += (dy / dist_val) * self.speed
         return False
 
     def draw(self, win):
         pygame.draw.circle(win, YELLOW, (int(self.x), int(self.y)), 3)
 
-#TOWER
+
+# TOWER
 class Tower:
     def __init__(self, x, y, tower_type):
         self.x = x
@@ -175,7 +210,8 @@ class Tower:
         color = NEON_BLUE if self.type == "base" else NEON_RED if self.type == "sniper" else NEON_PURPLE
         pygame.draw.circle(win, color, (int(self.x), int(self.y)), 10)
 
-#GAME
+
+# GAME
 class Game:
     def __init__(self):
         self.enemies = []
@@ -189,7 +225,7 @@ class Game:
         self.lives = 20
         self.gold = 150
 
-        self.build_phase = True  # <-- key addition
+        self.build_phase = True
 
     def start_wave(self):
         self.build_phase = False
@@ -212,11 +248,9 @@ class Game:
             self.spawn_timer = 0
             self.spawn_count += 1
 
-        # Reset slows
         for e in self.enemies:
             e.slow_factor = 1
 
-        # Enemies
         for e in self.enemies[:]:
             if e.move():
                 self.lives -= e.damage
@@ -225,16 +259,13 @@ class Game:
                 self.gold += e.gold
                 self.enemies.remove(e)
 
-        # Towers
         for t in self.towers:
             t.update(self)
 
-        # Projectiles
         for p in self.projectiles[:]:
             if p.update(self):
                 self.projectiles.remove(p)
 
-        # End of wave
         if self.spawn_count >= 10 + self.wave and not self.enemies:
             self.wave += 1
             self.build_phase = True
@@ -253,16 +284,17 @@ class Game:
         for p in self.projectiles:
             p.draw(win)
 
-        # UI
-        text = f"Wave: {self.wave}  Gold: {self.gold}  Lives: {self.lives}"
-        win.blit(FONT.render(text, True, WHITE), (20, 20))
+        ui = f"Wave: {self.wave}  Gold: {self.gold}  Lives: {self.lives}"
+        win.blit(FONT.render(ui, True, WHITE), (20, 20))
 
         if self.build_phase:
             msg = "BUILD PHASE - Press SPACE to start"
-            win.blit(FONT.render(msg, True, NEON_GREEN), (WIDTH//2 - 200, 50))
+            win.blit(FONT.render(msg, True, NEON_GREEN), (WIDTH // 2 - 200, 50))
 
         pygame.display.update()
-#MAIN
+
+
+# MAIN
 def main():
     clock = pygame.time.Clock()
     game = Game()
@@ -295,6 +327,7 @@ def main():
         game.draw(WIN)
 
     pygame.quit()
+
 
 if __name__ == "__main__":
     main()
