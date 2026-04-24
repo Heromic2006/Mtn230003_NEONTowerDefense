@@ -2,10 +2,9 @@ import pygame
 import math
 import random
 
-# Initialize pygame
 pygame.init()
 
-# Screen
+# SCREEN
 info = pygame.display.Info()
 WIDTH, HEIGHT = info.current_w, info.current_h
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -13,7 +12,7 @@ pygame.display.set_caption("Neon Tower Defense")
 
 FPS = 60
 
-# Colors
+# COLORS
 BLACK = (10, 10, 15)
 NEON_GREEN = (0, 255, 150)
 NEON_BLUE = (0, 200, 255)
@@ -24,7 +23,7 @@ WHITE = (255, 255, 255)
 
 FONT = pygame.font.SysFont("arial", 24)
 
-# Path
+# PATH
 PATH = [
     (0, HEIGHT // 2),
     (WIDTH // 4, HEIGHT // 2),
@@ -39,11 +38,9 @@ PATH = [
 def distance(a, b):
     return math.hypot(a[0] - b[0], a[1] - b[1])
 
-# compatibility alias (IMPORTANT for on_path snippet)
 dist = distance
 
-
-# --- ADDED TO TOP LEVEL ---
+# PATH CHECK
 def on_path(x, y):
     SAFE = 40
     for i in range(len(PATH) - 1):
@@ -94,7 +91,7 @@ class Enemy:
             self.size = 18
             self.color = NEON_RED
 
-        elif enemy_type == "final":
+        else:
             self.speed = 0.7
             self.health = 1000 * scale
             self.damage = 10
@@ -112,38 +109,35 @@ class Enemy:
         target = self.path[self.index + 1]
         dx = target[0] - self.x
         dy = target[1] - self.y
-        dist_val = math.hypot(dx, dy)
+        d = math.hypot(dx, dy)
 
-        if dist_val < 5:
+        if d < 5:
             self.index += 1
         else:
-            self.x += (dx / dist_val) * self.speed * self.slow_factor
-            self.y += (dy / dist_val) * self.speed * self.slow_factor
+            self.x += (dx / d) * self.speed * self.slow_factor
+            self.y += (dy / d) * self.speed * self.slow_factor
 
         return False
 
-    # --- UPDATED ENEMY DRAW (WITH HEALTH BAR) ---
     def draw(self, win):
         pygame.draw.circle(win, self.color, (int(self.x), int(self.y)), self.size)
 
-        # Health bar
+        # HEALTH BAR
         w = 40
         h = 5
-        health_ratio = max(self.health / self.max_health, 0)
+        ratio = max(self.health / self.max_health, 0)
 
-        pygame.draw.rect(win, (80, 0, 0),
-                         (self.x - 20, self.y - 25, w, h))
-        pygame.draw.rect(win, (0, 255, 100),
-                         (self.x - 20, self.y - 25, w * health_ratio, h))
+        pygame.draw.rect(win, (80, 0, 0), (self.x - 20, self.y - 25, w, h))
+        pygame.draw.rect(win, (0, 255, 100), (self.x - 20, self.y - 25, w * ratio, h))
 
 
 # PROJECTILE
 class Projectile:
-    def __init__(self, x, y, target, damage):
+    def __init__(self, x, y, target, dmg):
         self.x = x
         self.y = y
         self.target = target
-        self.damage = damage
+        self.dmg = dmg
         self.speed = 8
 
     def update(self, game):
@@ -152,14 +146,14 @@ class Projectile:
 
         dx = self.target.x - self.x
         dy = self.target.y - self.y
-        dist_val = math.hypot(dx, dy)
+        d = math.hypot(dx, dy)
 
-        if dist_val < 5:
-            self.target.health -= self.damage
+        if d < 5:
+            self.target.health -= self.dmg
             return True
 
-        self.x += (dx / dist_val) * self.speed
-        self.y += (dy / dist_val) * self.speed
+        self.x += (dx / d) * self.speed
+        self.y += (dy / d) * self.speed
         return False
 
     def draw(self, win):
@@ -168,32 +162,30 @@ class Projectile:
 
 # TOWER
 class Tower:
-    def __init__(self, x, y, tower_type):
+    def __init__(self, x, y, ttype):
         self.x = x
         self.y = y
-        self.type = tower_type
+        self.type = ttype
         self.cooldown = 0
 
-        if tower_type == "sniper":
+        if ttype == "sniper":
             self.range = 300
             self.damage = 50
-            self.fire_rate = 90
-
-        elif tower_type == "base":
+            self.rate = 90
+        elif ttype == "base":
             self.range = 150
             self.damage = 20
-            self.fire_rate = 40
-
-        elif tower_type == "slow":
+            self.rate = 40
+        else:
             self.range = 120
             self.damage = 0
-            self.fire_rate = 60
+            self.rate = 60
 
     def update(self, game):
         if self.type == "slow":
-            for enemy in game.enemies:
-                if distance((self.x, self.y), (enemy.x, enemy.y)) < self.range:
-                    enemy.slow_factor = 0.5
+            for e in game.enemies:
+                if distance((self.x, self.y), (e.x, e.y)) < self.range:
+                    e.slow_factor = 0.5
             return
 
         if self.cooldown > 0:
@@ -202,9 +194,9 @@ class Tower:
 
         targets = [e for e in game.enemies if distance((self.x, self.y), (e.x, e.y)) < self.range]
         if targets:
-            target = max(targets, key=lambda e: e.index)
-            game.projectiles.append(Projectile(self.x, self.y, target, self.damage))
-            self.cooldown = self.fire_rate
+            t = max(targets, key=lambda e: e.index)
+            game.projectiles.append(Projectile(self.x, self.y, t, self.damage))
+            self.cooldown = self.rate
 
     def draw(self, win):
         color = NEON_BLUE if self.type == "base" else NEON_RED if self.type == "sniper" else NEON_PURPLE
@@ -226,6 +218,10 @@ class Game:
         self.gold = 150
 
         self.build_phase = True
+
+        # UI STATE
+        self.selected = "base"
+        self.selected_tower = None
 
     def start_wave(self):
         self.build_phase = False
@@ -270,6 +266,7 @@ class Game:
             self.wave += 1
             self.build_phase = True
 
+    # ================= DRAW (UPDATED WITH FULL UI) =================
     def draw(self, win):
         win.fill(BLACK)
 
@@ -284,12 +281,37 @@ class Game:
         for p in self.projectiles:
             p.draw(win)
 
+        # TOP UI
         ui = f"Wave: {self.wave}  Gold: {self.gold}  Lives: {self.lives}"
         win.blit(FONT.render(ui, True, WHITE), (20, 20))
 
+        # BUILD TEXT
         if self.build_phase:
-            msg = "BUILD PHASE - Press SPACE to start"
-            win.blit(FONT.render(msg, True, NEON_GREEN), (WIDTH // 2 - 200, 50))
+            msg = "BUILD PHASE - Press SPACE"
+            win.blit(FONT.render(msg, True, NEON_GREEN), (WIDTH // 2 - 150, 50))
+
+        # ================= BOTTOM HUD =================
+        pygame.draw.rect(win, (20, 20, 30), (0, HEIGHT - 90, WIDTH, 90))
+
+        opts = [("base", 60), ("sniper", 100), ("slow", 90)]
+        x = 30
+
+        for name, cost in opts:
+            r = pygame.Rect(x, HEIGHT - 75, 150, 50)
+            pygame.draw.rect(win, (60, 60, 80), r)
+
+            if self.selected == name:
+                pygame.draw.rect(win, YELLOW, r, 2)
+
+            win.blit(FONT.render(f"{name} ${cost}", True, WHITE), (x + 10, HEIGHT - 60))
+            x += 170
+
+        # selected tower range
+        if self.selected_tower:
+            t = self.selected_tower
+            pygame.draw.circle(win, (0, 200, 255),
+                               (int(t.x), int(t.y)),
+                               int(t.range), 2)
 
         pygame.display.update()
 
@@ -312,16 +334,38 @@ def main():
                     game.start_wave()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = pygame.mouse.get_pos()
+                mx, my = pygame.mouse.get_pos()
 
+                # ===== UI CLICK CHECK =====
+                if my > HEIGHT - 90:
+                    opts = [("base", 60), ("sniper", 100), ("slow", 90)]
+                    x = 30
+                    for name, cost in opts:
+                        rect = pygame.Rect(x, HEIGHT - 75, 150, 50)
+                        if rect.collidepoint(mx, my):
+                            game.selected = name
+                        x += 170
+                    continue
+
+                # ===== SELECT TOWER =====
+                clicked = False
+                for t in game.towers:
+                    if distance((mx, my), (t.x, t.y)) < 20:
+                        game.selected_tower = t
+                        clicked = True
+                        break
+
+                if clicked:
+                    continue
+
+                # ===== PLACE TOWER =====
                 if game.build_phase:
-                    if event.button == 1 and game.gold >= 50:
-                        game.towers.append(Tower(x, y, "base"))
-                        game.gold -= 50
+                    cost_map = {"base": 60, "sniper": 100, "slow": 90}
+                    cost = cost_map[game.selected]
 
-                    elif event.button == 3 and game.gold >= 75:
-                        game.towers.append(Tower(x, y, "sniper"))
-                        game.gold -= 75
+                    if game.gold >= cost and not on_path(mx, my):
+                        game.towers.append(Tower(mx, my, game.selected))
+                        game.gold -= cost
 
         game.update()
         game.draw(WIN)
