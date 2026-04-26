@@ -476,7 +476,7 @@ def main():
                     if g.selected_tower:
                         g.selected_tower = None  # Close the upgrade menu if it's open
                     else:
-                        run = False              # Exit the game if no menu is open
+                    run = False              # Exit the game if no menu is open
             
             # 3. Handle mouse clicks
             if e.type == pygame.MOUSEBUTTONDOWN:
