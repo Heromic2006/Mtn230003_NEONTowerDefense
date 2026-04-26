@@ -7,8 +7,9 @@ Neon Tower defense
 
 Demo:
 
-GitHub Repository:
-GitHub Repo:
+Links
+GitHub Repo: https://github.com/Heromic2006/Mtn230003_NEONTowerDefense.git
+Video:
 
 Description:
 Neon tower defense is a 2d strategy game built using Python and the pygame library. The objective is to defend against waves of enemies by placing defense towers along the map. Each tower will automatially detect and attack enemies within range, while the player manages resourses and health to survive

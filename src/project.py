@@ -6,8 +6,9 @@ import random
 pygame.init()
 
 # Set the dimensions for the game window
-WIDTH, HEIGHT = 1600, 900
-WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+screen_info = pygame.display.Info()
+WIDTH, HEIGHT = screen_info.current_w, screen_info.current_h
+WIN = pygame.display.set_mode((WIDTH, HEIGHT), pygame.NOFRAME | pygame.FULLSCREEN)
 pygame.display.set_caption("Neon TD - Final Stable")
 
 # Define the target frames per second
@@ -456,20 +457,35 @@ class Game:
 
 # Main execution loop
 def main():
-    g=Game()
-    clock=pygame.time.Clock()
-    run=True
+    g = Game()
+    clock = pygame.time.Clock()
+    run = True
+    
     while run:
         clock.tick(FPS)
+        
         # Event handling
         for e in pygame.event.get():
-            if e.type==pygame.QUIT: run=False
-            if e.type==pygame.MOUSEBUTTONDOWN:
+            # 1. Handle clicking the 'X' button
+            if e.type == pygame.QUIT: 
+                run = False
+            
+            # 2. Handle key presses
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_ESCAPE:
+                    if g.selected_tower:
+                        g.selected_tower = None  # Close the upgrade menu if it's open
+                    else:
+                        run = False              # Exit the game if no menu is open
+            
+            # 3. Handle mouse clicks
+            if e.type == pygame.MOUSEBUTTONDOWN:
                 g.click(*pygame.mouse.get_pos())
         
         # Update and Render cycle
         g.update()
         g.draw()
+        
     pygame.quit()
 
 # Entry point check
